@@ -1,11 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        EC2_HOST = '13.233.146.99'
-        EC2_USER = 'ubuntu'
-    }
-
     stages {
 
         stage('Checkout') {
@@ -25,6 +20,7 @@ pipeline {
             steps {
                 echo 'Running basic website tests...'
                 bat 'if exist style.css (echo CSS file found) else (exit /b 1)'
+                bat 'if exist order.html (echo order.html found) else (exit /b 1)'
             }
         }
 
@@ -32,8 +28,9 @@ pipeline {
             steps {
                 sshagent(credentials: ['restaurant-ec2-key']) {
                     bat '''
-                    scp -o StrictHostKeyChecking=no *.html *.css *.jpg *.jpeg *.png *.ico *.webmanifest %EC2_USER%@%EC2_HOST%:/home/ubuntu/restaurant-website/
-                    ssh -o StrictHostKeyChecking=no %EC2_USER%@%EC2_HOST% "sudo cp /home/ubuntu/restaurant-website/* /var/www/html/ && sudo systemctl restart nginx"
+                        scp -o StrictHostKeyChecking=no *.html *.css *.jpg *.jpeg *.png *.ico *.webmanifest ubuntu@13.233.146.99:/home/ubuntu/restaurant-website/
+
+                        ssh -o StrictHostKeyChecking=no ubuntu@13.233.146.99 "sudo cp /home/ubuntu/restaurant-website/*.html /var/www/html/ && sudo cp /home/ubuntu/restaurant-website/*.css /var/www/html/ && sudo cp /home/ubuntu/restaurant-website/*.jpg /var/www/html/ && sudo cp /home/ubuntu/restaurant-website/*.jpeg /var/www/html/ && sudo cp /home/ubuntu/restaurant-website/*.png /var/www/html/ && sudo cp /home/ubuntu/restaurant-website/*.ico /var/www/html/ && sudo cp /home/ubuntu/restaurant-website/*.webmanifest /var/www/html/ && sudo systemctl restart nginx"
                     '''
                 }
             }
@@ -42,7 +39,7 @@ pipeline {
 
     post {
         success {
-            echo 'CI/CD Pipeline completed successfully and website deployed to EC2!'
+            echo 'CI/CD Pipeline completed successfully!'
         }
         failure {
             echo 'Pipeline failed. Please check the build logs.'
