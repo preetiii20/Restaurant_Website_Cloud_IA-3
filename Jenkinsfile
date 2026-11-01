@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        EC2_HOST = '13.233.146.99'
+        EC2_USER = 'ubuntu'
+    }
+
     stages {
 
         stage('Checkout') {
@@ -23,20 +28,21 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy to EC2') {
             steps {
-                echo 'Deploying Restaurant Website...'
-                bat 'if not exist deployed-site mkdir deployed-site'
-                bat 'copy /Y *.html deployed-site\\'
-                bat 'copy /Y *.css deployed-site\\'
-                echo 'Deployment completed successfully.'
+                sshagent(credentials: ['restaurant-ec2-key']) {
+                    bat '''
+                    scp -o StrictHostKeyChecking=no *.html *.css *.jpg *.jpeg *.png *.ico *.webmanifest %EC2_USER%@%EC2_HOST%:/home/ubuntu/restaurant-website/
+                    ssh -o StrictHostKeyChecking=no %EC2_USER%@%EC2_HOST% "sudo cp /home/ubuntu/restaurant-website/* /var/www/html/ && sudo systemctl restart nginx"
+                    '''
+                }
             }
         }
     }
 
     post {
         success {
-            echo 'CI/CD Pipeline completed successfully!'
+            echo 'CI/CD Pipeline completed successfully and website deployed to EC2!'
         }
         failure {
             echo 'Pipeline failed. Please check the build logs.'

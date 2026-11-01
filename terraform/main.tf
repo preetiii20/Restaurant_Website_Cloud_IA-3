@@ -14,6 +14,7 @@ provider "aws" {
 resource "aws_instance" "restaurant_server" {
   ami           = var.ami_id
   instance_type = var.instance_type
+  key_name      = "restaurant-key"
 
   tags = {
     Name = "Restaurant-Website-Server"
